@@ -1,32 +1,41 @@
 <div #board class="board"></div>
 <form class="settings-form">
     <mat-card>
-        <mat-card-header>Graph Controls</mat-card-header>
         <mat-card-actions>
             <div class="buttons-row">
                 <button mat-raised-button color="primary" (click)="newGraph()">New Graph</button>
                 <button mat-raised-button color="accent" (click)="resetGraph()">Reset Graph</button>
-                <button mat-raised-button color="accent" (click)="solveGraph()">Reset and Solve Graph</button>
+                <button mat-raised-button color="accent" (click)="solveGraph()" [disabled]="gameService.solutionRunning">Reset and Solve Graph</button>
             </div>
             <mat-form-field appearance="fill">
                 <mat-label>Nodes</mat-label>
                 <input matInput [(ngModel)]="numberOfNodes" name="numberOfNodes">
-                <mat-slider min="3" max="25" step="1" [(ngModel)]="numberOfNodes" name="numberOfNodes"></mat-slider>
+                <mat-slider color="primary" min="3" max="50" step="1" [(ngModel)]="numberOfNodes" name="numberOfNodes"></mat-slider>
             </mat-form-field>
             <mat-form-field appearance="fill">
                 <mat-label>Max Edges Per Node</mat-label>
                 <input matInput [(ngModel)]="maxEdgesPerNode" name="maxEdgesPerNode">
-                <mat-slider min="2" max="10" step="1" [(ngModel)]="maxEdgesPerNode" name="maxEdgesPerNode"></mat-slider>
+                <mat-slider color="primary" min="2" max="10" step="1" [(ngModel)]="maxEdgesPerNode" name="maxEdgesPerNode"></mat-slider>
             </mat-form-field>
             <mat-form-field appearance="fill">
                 <mat-label>Graph Density</mat-label>
                 <input matInput [(ngModel)]="graphDensity" name="graphDensity">
-                <mat-slider min="1" max="10" step="1" [(ngModel)]="graphDensity" name="graphDensity"></mat-slider>
+                <mat-slider color="primary" min="1" max="100" step="1" [(ngModel)]="graphDensity" name="graphDensity"></mat-slider>
+            </mat-form-field>
+            <mat-form-field appearance="fill">
+                <mat-label>Node Repulsion Force</mat-label>
+                <input matInput [(ngModel)]="repulsionForce" name="repulsionForce">
+                <mat-slider color="primary" min="1" max="5000" step="10" [(ngModel)]="repulsionForce" name="repulsionForce" (change)="onRepulsionForceChange($event)"></mat-slider>
             </mat-form-field>
             <mat-form-field appearance="fill">
                 <mat-label>Scramble Factor</mat-label>
                 <input matInput [(ngModel)]="scrambleFactor" name="scrambleFactor">
                 <mat-slider min="2" max="100" step="2" [(ngModel)]="scrambleFactor" name="scrambleFactor"></mat-slider>
+            </mat-form-field>
+            <mat-form-field appearance="fill">
+                <mat-label>Solution Speed</mat-label>
+                <input matInput [(ngModel)]="solutionSpeed" name="solutionSpeed">
+                <mat-slider min="1" max="100" step="1" [(ngModel)]="solutionSpeed" name="solutionSpeed" (change)="onSolutionSpeedChange($event)"></mat-slider>
             </mat-form-field>
         </mat-card-actions>
     </mat-card>

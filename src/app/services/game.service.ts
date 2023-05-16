@@ -15,6 +15,9 @@ interface GameStateChange {
 export class GameService {
     graph!: Graph;
     gameStateChanged = new Subject<GameStateChange>();
+    solutionSpeed: number = 75;
+    solutionRunning: boolean = false;
+    hasBeenWon: boolean = false;
     private clickHistory: GraphNode[] = [];
     private solutionClicks: GraphNode[] = [];
     constructor() { }
@@ -26,16 +29,16 @@ export class GameService {
         this.clickHistory = [];
     }
 
-    public generateGraph(numberOfNodes: number, maxEdgesPerNode: number, graphDensity: number): Graph {
+    generateGraph(numberOfNodes: number, maxEdgesPerNode: number, graphDensity: number): Graph {
         // Create nodes
         const nodes = Array.from({length: numberOfNodes}, (_, i) => new GraphNode(i.toString(), 0));
         // Create a circular graph
-        const edges = Array.from({length: numberOfNodes}, (_, i) => {
+        let edges = Array.from({length: numberOfNodes}, (_, i) => {
             const source = nodes[i];
             const target = nodes[(i+1) % numberOfNodes];
             const edge = new Edge(i, this.randomEdgeType(), nodes, source, target);
-            source.edges.push(edge);
-            target.edges.push(edge);
+            this.addEdgeToNode(edge, source);
+            this.addEdgeToNode(edge, target);
             return edge;
         });
         // Add additional edges
@@ -59,15 +62,35 @@ export class GameService {
             });
             if (!shouldCancelEdge) {
                 const edge = new Edge(numberOfNodes + i, this.randomEdgeType(), nodes, source, target);
-                source.edges.push(edge);
-                target.edges.push(edge);
+                this.addEdgeToNode(edge, source);
+                this.addEdgeToNode(edge, target);
                 edges.push(edge);
             }
+        }
+        const removingEdges = Math.floor(Math.random() * numberOfNodes + graphDensity/15);
+        for (let i = 0; i < removingEdges; i++){
+            const edgeIndex = Math.floor(Math.random() * edges.length);
+            const candidateEdge = edges[edgeIndex];
+            edges = this.removeEdgeCompletely(candidateEdge, edges);
         }
         return new Graph(nodes, edges);
     }
     
-    public randomEdgeType(): EdgeType {
+    addEdgeToNode(edge: Edge, node: GraphNode): void {
+        node.edges.push(edge);
+    }
+
+    removeEdgeCompletely(edge: Edge, edges: Edge[]): Edge[] {
+        if(edge.source.edges.length < 3 || edge.target.edges.length < 3){
+            return edges;
+        }
+        edge.target.edges = edge.target.edges.filter(e => e !== edge);
+        edge.source.edges = edge.source.edges.filter(e => e !== edge);
+        edges = edges.filter(e => e !== edge);
+        return edges;
+    }    
+
+    randomEdgeType(): EdgeType {
         const r = Math.random();
         if (r < 0.5) return EdgeType.STANDARD;
         else if (r < 0.66) return EdgeType.DOUBLE;
@@ -84,7 +107,10 @@ export class GameService {
         }
     }
 
-    public nodeClicked(node: GraphNode): void {
+    public nodeClicked(node: GraphNode, solutionPlaying: boolean = false): void {
+        if(this.solutionRunning && !solutionPlaying){
+            return;
+        }
         this.graph.edges.forEach(edge => {
             if (edge.source === node || edge.target === node) {
                 let otherNode: GraphNode = (edge.source === node) ? <GraphNode>edge.target : <GraphNode>edge.source;
@@ -115,8 +141,14 @@ export class GameService {
         this.incrementPeriodicEdges();
         this.clickHistory.push(node);
         this.gameStateChanged.next({ node, reverseAnimation: false });
-        if(this.checkForWin()){
-            console.log(`won`);
+        if(this.checkForWin(solutionPlaying)){
+            if(this.hasBeenWon){
+                return;
+            }
+            this.hasBeenWon = true;
+            setTimeout(() => {
+                alert(`Won in ${this.clickHistory.length} moves.`);
+            }, 150);
         }
     }
 
@@ -134,6 +166,9 @@ export class GameService {
 
     // "reverse" clicks are exactly cancelled by regular clicks
     public nodeClickedReverse(node: GraphNode, addToSolution: boolean = false): void {
+        if(this.solutionRunning){
+            return;
+        }
         this.graph.edges.forEach(edge => {
             if (edge.source === node || edge.target === node) {
                 let otherNode: GraphNode = (edge.source === node) ? <GraphNode>edge.target : <GraphNode>edge.source;
@@ -170,16 +205,19 @@ export class GameService {
 
     public playSolution(): void {
         this.resetGame();
-        console.log(this.solutionClicks.length);
+        this.solutionRunning = true;
         let index = this.solutionClicks.length - 1;
-        const intervalId = setInterval(() => {
+        const playNext = () => {
             if (index < 0) {
-                clearInterval(intervalId);
+                this.solutionRunning = false;
+                this.hasBeenWon = true;
             } else {
-                this.nodeClicked(this.solutionClicks[index]);
+                this.nodeClicked(this.solutionClicks[index], true);
                 index--;
+                setTimeout(playNext, (2100 - 20*this.solutionSpeed));
             }
-        }, 250);
+        }
+        playNext();
     }
 
     public undoLastAction(): void {
@@ -190,12 +228,16 @@ export class GameService {
     }
 
     public resetGame(): void {
+        this.hasBeenWon = false;
         while (this.clickHistory.length > 0) {
             this.undoLastAction();
         }
     }
 
-    public checkForWin(): boolean {
+    checkForWin(solutionPlaying: boolean = false): boolean {
+        if(solutionPlaying){
+            return false;
+        }
         return this.graph.nodes.every(node => node.value === 0);
     }    
 }

@@ -18,6 +18,8 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
     links!: d3.Selection<SVGLineElement, Edge, SVGGElement, unknown>;
     svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
     resizableGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
+    objectGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
+    animationGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
     simulation!: d3.Simulation<GraphNode, undefined>;
     resizeObserver!: ResizeObserver;
     nodesMovable: boolean = false;
@@ -27,8 +29,10 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
     maxEdgesPerNode: number = 3;
     graphDensity: number = 4;
     scrambleFactor: number = 10;
+    repulsionForce: number = 500;
+    solutionSpeed: number = 75;
     private gameStateChangedSub!: Subscription;
-    constructor(private gameService: GameService) { }
+    constructor(public gameService: GameService) { }
 
     ngOnInit(): void {
         this.setupGraph();
@@ -84,6 +88,7 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
                         .attrTween('transform', this.translateAlong(linkElement.node() as SVGLineElement, reverseAnimation ? edge.source === node : edge.source !== node))
                         .remove();
                 });
+                this.createRipple(node, reverseAnimation);
             });
     }
 
@@ -115,6 +120,8 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
                     .attr('points','0 0, 20 7.5, 0 15');
 
         this.resizableGroup = this.svg.append('g');
+        this.animationGroup = this.resizableGroup.append('g');
+        this.objectGroup = this.resizableGroup.append('g');
     }    
 
     newGraph(): void {
@@ -150,12 +157,12 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         const simulation = d3.forceSimulation(nodes)
-            .force('charge', d3.forceManyBody().strength(this.numberOfNodes < 10 ? -1000 : -250))
+            .force('charge', d3.forceManyBody().strength(-this.repulsionForce))
             .force('center', d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2))
             .force('link', d3.forceLink().links(links).id((d: any) => d.id))
             .on('tick', ticked);
 
-        const link = this.resizableGroup.append('g')
+        const link = this.objectGroup.append('g')
             .attr('stroke', '#000')
             .selectAll('line')
             .data(links)
@@ -200,7 +207,7 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
                 }
             });
         
-        const doubleLink = this.resizableGroup.append('g')
+        const doubleLink = this.objectGroup.append('g')
             .attr('stroke', '#fff')
             .selectAll('line')
             .data(links)
@@ -209,7 +216,7 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
             .append('line')
             .attr('stroke-width', 6);
 
-        const nodeElements = this.resizableGroup.append('g')
+        const nodeElements = this.objectGroup.append('g')
             .attr('stroke', '#000')
             .attr('stroke-width', 1.5)
             .selectAll('circle')
@@ -236,7 +243,7 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
                 }
             });
 
-        const textElements = this.resizableGroup.append('g')
+        const textElements = this.objectGroup.append('g')
             .selectAll('text')
             .data(nodes)
             .join('text')
@@ -317,6 +324,25 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
         };
     }
 
+    createRipple(node: GraphNode, reverse: boolean): void {
+        if(!node.x || !node.y){
+            return;
+        }
+        const ripple = this.animationGroup.append('circle')
+            .attr('cx', node.x)
+            .attr('cy', node.y)
+            .attr('r', reverse ? 50 : 0)
+            .attr('fill', 'black')
+            .attr('opacity', reverse ? 0 : 1)
+            .style('pointer-events', 'none');
+    
+        ripple.transition()
+            .duration(500)
+            .attr('r', reverse ? 0 : 50)
+            .attr('opacity', reverse ? 1 : 0)
+            .end().then(() => ripple.remove());
+    }
+
     updateNodeColors(): void {
         this.nodeElements
             .attr('fill', d => {
@@ -357,5 +383,16 @@ export class BoardComponent implements OnInit, AfterViewInit, OnDestroy {
     updateCenterForce(): void {
         this.simulation.force('center', d3.forceCenter(this.svgWidth / 2, this.svgHeight / 2));
         this.simulation.alpha(1).restart();
+    }
+
+    onRepulsionForceChange(event: any): void {
+        this.repulsionForce = event.value;
+        this.simulation.force('charge', d3.forceManyBody().strength(-this.repulsionForce));
+        this.simulation.alpha(1).restart();
+    }
+
+    onSolutionSpeedChange(event: any): void {
+        this.solutionSpeed = event.value;
+        this.gameService.solutionSpeed = this.solutionSpeed;
     }
 }

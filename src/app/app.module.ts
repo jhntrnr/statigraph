@@ -2,17 +2,16 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatCardModule } from '@angular/material/card';
-import { MatDividerModule } from '@angular/material/divider';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AppComponent } from './app.component';
 import { BoardComponent } from './components/board/board.component';
+import { TutorialComponent } from './components/tutorial/tutorial.component';
 
 import { GameService } from './services/game.service';
 
@@ -21,6 +20,7 @@ import { GameService } from './services/game.service';
 	declarations: [
 		AppComponent,
 		BoardComponent,
+  TutorialComponent,
 	],
 	imports: [
         BrowserModule,
@@ -29,12 +29,11 @@ import { GameService } from './services/game.service';
         HttpClientModule,
         BrowserAnimationsModule,
         MatFormFieldModule,
-        MatSelectModule,
         MatButtonModule,
         MatInputModule,
         MatSliderModule,
         MatCardModule,
-        MatDividerModule,
+        
 	],
 	providers: [
 		GameService,
