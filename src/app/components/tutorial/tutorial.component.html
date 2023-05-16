@@ -1,6 +1,6 @@
 <div *ngIf="isExpanded">
     <div class="carousel">
-        <img [src]="images[currentImageIndex]" width="800px" height="600px">
+        <img [src]="images[currentImageIndex]" class="carousel-image">
     </div>
     <button mat-button (click)="prevImage()" [disabled]="currentImageIndex === 0">Previous</button>
     <button mat-button (click)="nextImage()" [disabled]="currentImageIndex === images.length - 1">Next</button>
